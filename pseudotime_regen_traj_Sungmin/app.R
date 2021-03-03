@@ -1,8 +1,8 @@
-library(BiocManager)
+# library(BiocManager)
 options(repos = BiocManager::repositories())
 	library(shiny)
 	library(cowplot)
-	library(Seurat)
+	#library(Seurat)
 	library(monocle3)
 	library(ggplot2)
 	library(shinythemes)
@@ -13,12 +13,15 @@ options(repos = BiocManager::repositories())
 	library(gridExtra)
 	library(gtable)
 	library(grid)
-	library(devtools)
+	#library(devtools)
+  #dev_mode(on=T)
+ #  devtools::install_github(repo = 'satijalab/seurat', ref = 'develop')
+  library(Seurat)
   library(ggnewscale)
   library(stringr)
 
 # ============================ functions section 
-	"%||%" <- devtools:::`%||%`
+	#"%||%" <- devtools::`%||%`
 
 `%notin%` <- Negate(`%in%`)
 

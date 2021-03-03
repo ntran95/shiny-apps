@@ -367,6 +367,14 @@ ui <- fixedPage(theme = shinythemes::shinytheme("lumen"), # paper lumen cosmo
 					column(12, align = "center",
 							downloadButton("downloadPNGHeatmapF", "Download PNG",
 								style = 'padding:5px; font-size:80%')),
+					
+					column(12, tags$br()),
+					column(12,  align = "center", 
+					       radioGroupButtons("selectClustering",
+					                         "Select Clustering Option:", 
+					                         choices = list(Clustering19 = "cl19",
+					                                         Clustering10 = "cl10"), 
+					                         width = "100%")),
 
 
 					fluidRow(tags$br()),

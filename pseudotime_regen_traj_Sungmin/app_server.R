@@ -131,9 +131,21 @@ server <- function(input, output) {
 		
 #sidepanel FeaturePlot for Heatmap tab
 ClustNumFeatPlotF <- function(){
-  clustUMAP <- DimPlot(seurat_obj, group.by = "tree.ident")
-  clustUMAP <- cleanUMAP(clustUMAP) + 
-    theme(legend.position="bottom")
+  if (input$selectClustering == "cl10"){
+    clustUMAP <- DimPlot(seurat_obj, 
+                         group.by = "tree.ident.cl10",
+                         label = TRUE,
+                         label.size = 5)
+    clustUMAP <- cleanUMAP(clustUMAP) + 
+      theme(legend.position="bottom")
+  }else{
+    clustUMAP <- DimPlot(seurat_obj, 
+                         group.by = "tree.ident.cl19",
+                         label = TRUE,
+                         label.size = 5)
+    clustUMAP <- cleanUMAP(clustUMAP) + 
+      theme(legend.position="bottom")
+  }
   return(clustUMAP)
 }
 
@@ -856,31 +868,63 @@ output$plot.uiDatFeatPlotV5 <- renderUI({
 	  selected <- selected[selected %in% rownames(seurat_obj[["RNA"]]@data)]
 	  
 	  # === build ggplot2 heatmap object
+	  if (input$selectClustering == "cl10"){
 	  # change current idents to heirarachical clusters num
-	  seurat_obj$tree.ident <- factor(seurat_obj$tree.ident)
-	  levels(seurat_obj$tree.ident) <- paste0("cluster",levels(seurat_obj$tree.ident))
-	  Idents(seurat_obj) <- "tree.ident"
+	  #seurat_obj$tree.ident.cl10 <- factor(seurat_obj$tree.ident.cl10)
+	  levels(seurat_obj$tree.ident.cl10) <- 
+	    paste0("cluster_",levels(seurat_obj$tree.ident.cl10))
+	  
+	  Idents(seurat_obj) <- "tree.ident.cl10"
 	  
 	  dotplot <- DotPlot(seurat_obj, features = selected,
-	                     group.by = "tree.ident")
+	                     group.by = "tree.ident.cl10")
 	  
 	  # specify trajectory group based on cluster number
 	  clusters <- as.character(dotplot$data$id)
 	  #specify treatment and sequencing technique (data.set)
 	  dotplot$data <- dotplot$data %>% mutate(groupIdent=case_when(
-	    str_detect(dotplot$data$id, "cluster3|cluster2|cluster7|cluster6") ~ "initial injury response", 
-	    str_detect(dotplot$data$id, "cluster8|cluster5|^cluster1$") ~ "HC Lineage",
-	    str_detect(dotplot$data$id, "cluster9|cluster4|^cluster10$") ~ "Central Cell Lineage",
+	    str_detect(dotplot$data$id, "cluster_3|cluster_2|cluster_7|cluster_6") ~ "Injury Response + Progenitor Activation", 
+	    str_detect(dotplot$data$id, "cluster_8|cluster_5|^cluster_1$") ~ "HC Lineage",
+	    str_detect(dotplot$data$id, "cluster_9|cluster_4|^cluster_10$") ~ "Central Cell Lineage",
 	    TRUE ~ as.character(dotplot$data$id)))
 	  
 	  #reorder levels/ build plotting df
 	  dotplot$data$groupIdent <- factor(dotplot$data$groupIdent,
-	                                    levels = c("initial injury response",
+	                                    levels = c("Injury Response + Progenitor Activation",
 	                                               "HC Lineage",
 	                                               "Central Cell Lineage"))
 	  
 	  dotplot$data$id <- factor(dotplot$data$id, 
-	                            levels = paste0("cluster",c(3,2,7,6,8,5,1,9,10,4)))
+	                            levels = paste0("cluster_",c(3,2,7,6,8,5,1,9,10,4)))
+	  }else{ #if (input$selectClustering == "cl19"){
+	    # change current idents to heirarachical clusters num
+	    #seurat_obj$tree.ident.cl10 <- factor(seurat_obj$tree.ident.cl10)
+	    levels(seurat_obj$tree.ident.cl19) <- 
+	      paste0("cluster_",levels(seurat_obj$tree.ident.cl19))
+	    
+	    Idents(seurat_obj) <- "tree.ident.cl19"
+	    
+	    dotplot <- DotPlot(seurat_obj, features = selected,
+	                       group.by = "tree.ident.cl19")
+	    
+	    # specify trajectory group based on cluster number
+	    clusters <- as.character(dotplot$data$id)
+	    #specify treatment and sequencing technique (data.set)
+	    dotplot$data <- dotplot$data %>% mutate(groupIdent=case_when(
+	      str_detect(dotplot$data$id, "cluster_3|cluster_2|cluster_5|cluster_4|cluster_9|^cluster_11$|cluster_8|^cluster_12$|^cluster_10$") ~ "Injury Response + Progenitor Activation", 
+	      str_detect(dotplot$data$id, "^cluster_19$|^cluster_17$|^cluster_14$|^cluster_13$|^cluster_1$") ~ "HC Lineage",
+	      str_detect(dotplot$data$id, "^cluster_18$|^cluster_15$|^cluster_16$|cluster_7|cluster_6") ~ "Central Cell Lineage",
+	      TRUE ~ as.character(dotplot$data$id)))
+	    
+	    #reorder levels/ build plotting df
+	    dotplot$data$groupIdent <- factor(dotplot$data$groupIdent,
+	                                      levels = c("Injury Response + Progenitor Activation",
+	                                                 "HC Lineage",
+	                                                 "Central Cell Lineage"))
+	    
+	    dotplot$data$id <- factor(dotplot$data$id, 
+	                              levels = paste0("cluster_",c(3,2,5,4,9,11,8,12,10,19,17,14,13,1,18,15,16,7,6)))
+	  }
 	  
 	  plot_df <- dotplot$data
 	  
