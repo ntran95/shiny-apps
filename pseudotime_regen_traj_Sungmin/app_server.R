@@ -949,7 +949,7 @@ output$plot.uiDatFeatPlotV5 <- renderUI({
 	  g <- ggplot_gtable(ggplot_build(p))
 	  strips <- which(grepl('strip-', g$layout$name))
 	  
-	  pal <- c("#A3A500", "#F8766D", "#39B600")
+	  pal <- c("#A3A500", "#00BE67", "#F8766D")
 	  
 	  for (i in seq_along(strips)) {
 	    k <- which(grepl('rect', g$grobs[[strips[i]]]$grobs[[1]]$childrenOrder))

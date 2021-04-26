@@ -826,6 +826,9 @@ server <- function(input, output) {
         
         g <- g + coord_flip() + theme(
           axis.text.x = element_text(angle = 90, hjust = 1))
+        # 
+        # # test family font, exported to illustrator
+        # g <- g + theme_ipsum(base_family = "Arial")
       }
       
     } else{
@@ -859,6 +862,10 @@ server <- function(input, output) {
       
       g <- g + coord_flip() + theme(
         axis.text.x = element_text(angle = 90, hjust = 1)) 
+      
+      # # test family font, exported to illustrator
+       # g <- g + theme_ipsum(base_family = "Arial",axis = T) 
+      
       if (input$Analysis %notin% multiple_idents_seurObj && input$selectGrpDot == "cell.type.ident") {
         g <- DotPlot(seurat_obj, features = rev(selected),
                      cols = "RdYlBu", dot.scale = input$dotScale,
@@ -871,6 +878,9 @@ server <- function(input, output) {
 
         g <- g + coord_flip() + theme(
           axis.text.x = element_text(angle = 90, hjust = 1))
+        
+        # # test family font, exported to illustrator
+        # g <- g + theme_ipsum(base_family = "sans") 
       }
       
     } 
