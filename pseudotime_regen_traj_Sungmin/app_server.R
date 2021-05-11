@@ -75,17 +75,15 @@ server <- function(input, output) {
 					label_leaves = TRUE, 
 					show_trajectory_graph = TRUE, 
 					cell_size = 0.70,
-					trajectory_graph_segment_size = 0.55, 
+					trajectory_graph_segment_size = 0.30, 
 					label_cell_groups = FALSE,
 					group_label_size = 8) + 
-				theme(legend.position="bottom", legend.title=element_blank())
-
-# #preserve dataset colors 
-# cell_type_trt <- levels(cds$cell.type.and.trt)
-# type_trt_cols <- gg_color_hue(length(cell_type_trt))
+				theme(legend.position="bottom", 
+				      legend.title=element_blank())
 
 				traject_plot <- cleanUMAP(traject_plot)
-				traject_plot <- traject_plot + scale_color_manual(values = type_trt_cols)
+				traject_plot <- traject_plot + 
+				  scale_color_manual(values = ptime_type_trt_cols$recolor.2)
 
 # ================================= traj umap by pseudotime
 				ptime_plot <- plot_cells(cds, color_cells_by = "pseudotime",
@@ -131,6 +129,19 @@ server <- function(input, output) {
 		
 #sidepanel FeaturePlot for Heatmap tab
 ClustNumFeatPlotF <- function(){
+  traject_plot <- plot_cells(cds, color_cells_by = "cell.type.and.trt",
+                             label_leaves = TRUE, 
+                             show_trajectory_graph = TRUE, 
+                             cell_size = 0.70,
+                             trajectory_graph_segment_size = 0.30, 
+                             label_cell_groups = FALSE,
+                             group_label_size = 8) + 
+    theme(legend.position="bottom", legend.title=element_blank())
+  
+  traject_plot <- cleanUMAP(traject_plot)
+  traject_plot <- traject_plot + 
+    scale_color_manual(values = ptime_type_trt_cols$recolor.2)
+  
   if (input$selectClustering == "cl10"){
     clustUMAP <- DimPlot(seurat_obj, 
                          group.by = "tree.ident.cl10",
@@ -228,8 +239,10 @@ output$plot.uiDatFeatPlotV5 <- renderUI({
 							axis.title = element_text(size = 18),
 							panel.border = element_rect(colour = "#FFFFFF",
 								fill = NA, size = 1))
-
-#import, plot traj line
+          
+				if (input$selectTrajectoryLine == "Trajectory"){
+				  
+          #import, plot traj line
 					feat[[k]] <- feat[[k]] + geom_segment(
 							aes_string(x="source_prin_graph_dim_1",
 								y="source_prin_graph_dim_2",
@@ -277,6 +290,7 @@ output$plot.uiDatFeatPlotV5 <- renderUI({
 					geom_text(aes_string(x="prin_graph_dim_1", y="prin_graph_dim_2",
 								label="root_idx"),
 							size=I(as.numeric(input$nodeSize)), color="black", na.rm=TRUE, root_df)
+				}
 
 			}
 
@@ -375,14 +389,14 @@ output$plot.uiDatFeatPlotV5 <- renderUI({
         #remove not found in norm matrix obj
 				selected <- selected[selected %in% rownames(seurat_obj[["RNA"]]@data)]
 
-				# central_traj_df <- make_plot_df(cds_sub = ptime_central_traj,
-				# 		gene = selected)
-				# 	main_HC_traj_df <- make_plot_df(cds_sub = ptime_main_traj,
-				# 			gene = selected)
+        #recolored scheme
+					central_traj_geom_smooth_col <- 
+					  ptime_type_trt_cols[ptime_type_trt_cols$cell_type_trt == 
+					                        "10hr.central-cells",]$recolor.2
 
-					central_traj_geom_smooth_col <- "#00BE67"
-
-					main_traj_geom_smooth_col <- "#F8766D"
+					main_traj_geom_smooth_col <- 
+					  ptime_type_trt_cols[ptime_type_trt_cols$cell_type_trt == 
+					                        "10hr.mature-HCs",]$recolor.2
 					
 					# = add vertical line at branching point
 					branching_ptime <- get_branching_point(seurat_obj = seurat_obj,
@@ -400,11 +414,14 @@ output$plot.uiDatFeatPlotV5 <- renderUI({
 					                                  gene = selected)
 					  central_traj_df <- central_traj_df[central_traj_df$pseudotime > 
 					                                       as.numeric(branching_ptime$pseudotime - 2),]
+					  #drop unused factors
+					  central_traj_df <- droplevels(central_traj_df)
 					  main_HC_traj_df <- make_plot_df(cds_sub = ptime_main_traj,
 					                                  gene = selected)
 					  main_HC_traj_df <- main_HC_traj_df[main_HC_traj_df$pseudotime > 
 					                                       as.numeric(branching_ptime$pseudotime - 2),]
-					  
+					  #drop unused factors
+					  main_HC_traj_df <- droplevels(main_HC_traj_df)
 					}
 
 					if (input$selectGrpPtimeLinePlot == "NoLegend"){
@@ -430,23 +447,45 @@ output$plot.uiDatFeatPlotV5 <- renderUI({
 										"HC Lineage" = main_traj_geom_smooth_col))
 
 							lg <- lg + geom_rug(data=main_HC_traj_df, sides='b',
-									alpha=.10, aes(x=pseudotime,
-										color = cell_group) )
+							                    alpha=.10, 
+							                    length = unit(0.06, "npc"),
+							                    aes(x=pseudotime, color = cell_group))
 
-							lg <- lg + geom_rug(data=central_traj_df, sides='t', alpha=.10,
-									aes(x=pseudotime,
-										color = cell_group) )
+							lg <- lg + geom_rug(data=central_traj_df, sides='t',
+							                    alpha=.10,
+							                    length = unit(0.06, "npc"),
+							                    aes(x=pseudotime,	color = cell_group))
 
-							lg <- lg + scale_color_manual(values = type_trt_cols)
+							#if there is no cutoff on graph (use complete graph)
+							if (input$selectCutOffPtimeLinePlot == "NoCutOff"){
+							  #no need to update colors
+							  lg <- lg +
+							    scale_color_manual(values = ptime_type_trt_cols$recolor.2) 
+							}else { #if cutoff at branching point
+							  #extract colors corresponding to subsetted cell groups
+							  sub_cell_groups <- unique(rbind(main_HC_traj_df,central_traj_df)$cell_group)
+							  sub_ptime_type_trt_cols <- ptime_type_trt_cols[ptime_type_trt_cols$cell_type_trt %in% 
+							                                                   sub_cell_groups,]
+							  lg <- lg +
+							    scale_color_manual(values = sub_ptime_type_trt_cols$recolor.2) 
+							  
+							}
 							lg <-   lg + theme_bw() +
 							theme(
 							     ) +
 							labs(
-									x     = 'pseudotime'
-									,y    = 'scaled gene expression'
+									x     = 'Pseudotime'
+									,y    = 'Scaled Gene Expression'
 							    )
-							lg <- lg +theme(legend.position="none", legend.title=element_blank()) +
-							guides(colour = guide_legend(override.aes = list(alpha = 1))) +
+							lg <- lg +theme(legend.position="none",
+							                legend.title=element_blank(),
+							                strip.text.x = element_text(size = 24,
+							                                            face = "bold"),#+#specify facet title size
+							                axis.text=element_text(size=16),
+							                legend.text = element_text(size = 14),
+							                axis.title=element_text(size=16)) +
+							guides(colour = guide_legend(override.aes = list(alpha = 1,
+							                                                 size = 3))) +
 							scale_x_continuous( expand = c(0, 0)) #remove gap below 0
 							
 
@@ -477,7 +516,8 @@ output$plot.uiDatFeatPlotV5 <- renderUI({
 					      span=0.2,
 					      method='loess',
 					      #fill = central_traj_geom_smooth_col,
-					      aes( x=pseudotime, y=expression,color="Central Cell Lineage", fill = "Central Cell Lineage"),
+					      aes( x=pseudotime, y=expression,color="Central Cell Lineage", 
+					           fill = "Central Cell Lineage"),
 					      fullrange = TRUE)
 					  
 					  lg <- lg +
@@ -486,12 +526,14 @@ output$plot.uiDatFeatPlotV5 <- renderUI({
 					                span=0.2,
 					                method='loess',
 					                #fill = main_traj_geom_smooth_col,
-					                aes( x=pseudotime, y=expression, color="HC Lineage", fill = "HC Lineage"))
+					                aes( x=pseudotime, y=expression, color="HC Lineage", 
+					                     fill = "HC Lineage"))
 					  
 					  lg <- lg + scale_color_manual(name="Branching Trajectories",
 					                                guide = 'legend',
 					                                values = c("Central Cell Lineage" = central_traj_geom_smooth_col,
-					                                           "HC Lineage" = main_traj_geom_smooth_col)) + guides(guide_legend(override.aes = list(linetype = c("black","black"))))
+					                                           "HC Lineage" = main_traj_geom_smooth_col)) + 
+					    guides(guide_legend(override.aes = list(linetype = c("black","black"))))
 					  lg <- lg + scale_fill_manual(name="Branching Trajectories",guide = 'legend',
 					                               values = c("Central Cell Lineage" = central_traj_geom_smooth_col,
 					                                          "HC Lineage" = main_traj_geom_smooth_col))
@@ -514,25 +556,46 @@ output$plot.uiDatFeatPlotV5 <- renderUI({
 					    new_scale_fill() # add new scale color for geom_rug
 					  
 					  lg <- lg + geom_rug(data=main_HC_traj_df, sides='b',
-					                      alpha=.10, aes(x=pseudotime,
-					                                     color = cell_group) )
+					                      alpha=.10, 
+					                      length = unit(0.06, "npc"),
+					                      aes(x=pseudotime,  color = cell_group) )
 					  
-					  lg <- lg + geom_rug(data=central_traj_df, sides='t', alpha=.10,
-					                      aes(x=pseudotime,
-					                          color = cell_group) )
-					  
-					  lg <- lg + scale_color_manual(values = type_trt_cols)
+					  lg <- lg + geom_rug(data=central_traj_df, sides='t',
+					                      alpha=.10,
+					                      length = unit(0.06, "npc"),
+					                      aes(x=pseudotime,  color = cell_group) )
+					  #if there is no cutoff on graph (use complete graph)
+					  if (input$selectCutOffPtimeLinePlot == "NoCutOff"){
+					    #no need to update colors
+					    lg <- lg +
+					      scale_color_manual(values = ptime_type_trt_cols$recolor.2) 
+					  }else { #if cutoff at branching point
+					    #extract colors corresponding to subsetted cell groups
+					    sub_cell_groups <- unique(rbind(main_HC_traj_df,central_traj_df)$cell_group)
+					    sub_ptime_type_trt_cols <- ptime_type_trt_cols[ptime_type_trt_cols$cell_type_trt %in% 
+					                                                     sub_cell_groups,]
+					    lg <- lg +
+					      scale_color_manual(values = sub_ptime_type_trt_cols$recolor.2) 
+					    
+					  }
 					  lg <-   lg + theme_bw() +
 					    theme(
 					    ) +
 					    labs(
-					      x     = 'pseudotime'
-					      ,y    = 'scaled gene expression'
+					      x     = 'Pseudotime'
+					      ,y    = 'Scaled Gene Expression'
 					    )
 					  lg <- lg +theme(legend.position="bottom",
 					                  legend.box = "vertical",
-					                  legend.title=element_blank()) +
-					    guides(colour = guide_legend(override.aes = list(alpha = 1))) +
+					                  legend.title=element_blank(),
+					                  strip.text.x = element_text(size = 24, 
+					                                                    face = "bold"),#+#specify facet title size
+					                  axis.text=element_text(size=16),
+					                  legend.text = element_text(size = 14),
+					                  axis.title=element_text(size=16),
+					                  legend.key.size = unit(.4, "in")) +
+					    guides(colour = guide_legend(override.aes = list(alpha = 1, 
+					                                                     size = 3))) +
 					    scale_x_continuous( expand = c(0, 0)) #remove gap below 0
 					  
 					  
@@ -651,7 +714,7 @@ output$plot.uiDatFeatPlotV5 <- renderUI({
 	  }
 	)
 
-	# # ======== Mulitple Gene Ptime Line Dynamics ======== #
+	# ======== Mulitple Gene Ptime Line Dynamics ======== #
 	MultiGPtimeLinePlotF <- reactive({
 	  selected <- unique(unlist(strsplit(input$multptimeLinePlotGenes, " ")))
 	  
@@ -699,9 +762,19 @@ output$plot.uiDatFeatPlotV5 <- renderUI({
 	  #cancatenate two traj df 
 	  plot_dt <- rbind(central_traj_df,main_HC_traj_df)
 	  
-	  central_traj_geom_smooth_col <- "#00BE67"
+	  #original colors
+	  # central_traj_geom_smooth_col <- "#00BE67"
+	  # 
+	  # main_traj_geom_smooth_col <- "#F8766D"
 	  
-	  main_traj_geom_smooth_col <- "#F8766D"
+	  #recolored scheme
+	  central_traj_geom_smooth_col <- 
+	    ptime_type_trt_cols[ptime_type_trt_cols$cell_type_trt == 
+	                          "10hr.central-cells",]$recolor.2
+	  
+	  main_traj_geom_smooth_col <- 
+	    ptime_type_trt_cols[ptime_type_trt_cols$cell_type_trt == 
+	                          "10hr.mature-HCs",]$recolor.2
 	  
 	  #add smoothing gene line
 	  p <- ggplot(data = plot_dt,
@@ -713,7 +786,8 @@ output$plot.uiDatFeatPlotV5 <- renderUI({
 	  p <- p +
 	    new_scale_color() + # add new scale color for geom_rug
 	    new_scale_fill() +# add new scale color for geom_rug
-	    geom_vline(data = branching_ptime, aes(xintercept = pseudotime, color = "cell_group"),
+	    geom_vline(data = branching_ptime, aes(xintercept = pseudotime,
+	                                           color = "cell_group"),
 	               linetype=2) +
 	    scale_color_manual(name = " ",  values = "red",
 	                       labels = c("branching point"))
@@ -722,29 +796,54 @@ output$plot.uiDatFeatPlotV5 <- renderUI({
 	  p <- p+
 	    new_scale_color() + # add new scale color for geom_rug
 	    new_scale_fill() +# add new scale color for geom_rug
-	    geom_rug(data=plot_dt[plot_dt$trajectory == "Central Cell Lineage",], sides='b', 
-	             alpha=.10, aes(x=pseudotime, color = cell_group) ) +
-	    scale_color_manual(values = type_trt_cols, guide = "none") +
+	    geom_rug(data=plot_dt[plot_dt$trajectory == "Central Cell Lineage",],
+	             sides='b', 
+	             alpha=.10, 
+	             length = unit(0.06, "npc"),
+	             aes(x=pseudotime, color = cell_group) ) +
+	    scale_color_manual(values = ptime_type_trt_cols$recolor.2, guide = "none") +
 	    new_scale_color() + # add new scale color for geom_rug
 	    new_scale_fill() +# add new scale color for geom_rug
-	    geom_rug(data=plot_dt[plot_dt$trajectory == "HC Lineage",], sides='b', 
-	             alpha=.10, aes(x=pseudotime, color = cell_group) ) +
-	    scale_color_manual(values = type_trt_cols) 
+	    geom_rug(data=plot_dt[plot_dt$trajectory == "HC Lineage",],
+	             sides='b', 
+	             alpha=.10,
+	             length = unit(0.06, "npc"),
+	             aes(x=pseudotime, color = cell_group)) 
 	  
+	  #if there is no cutoff on graph (use complete graph)
+	  if (input$selectCutOffMultiGPtimeLinePlot == "NoCutOff"){
+	    #no need to update colors
+	    p <- p +
+	      scale_color_manual(values = ptime_type_trt_cols$recolor.2) 
+	  }else { #if cutoff at branching point
+	    #extract colors corresponding to subsetted cell groups
+	    sub_cell_groups <- unique(rbind(main_HC_traj_df,central_traj_df)$cell_group)
+	    sub_cell_groups <- factor(sub_cell_groups, levels= levels(sub_cell_groups))
+	    sub_ptime_type_trt_cols <- ptime_type_trt_cols[ptime_type_trt_cols$cell_type_trt %in% 
+	                          sub_cell_groups,]
+	    p <- p +
+	      scale_color_manual(values = sub_ptime_type_trt_cols$recolor.2) 
+	    
+	  }
 	  #legend themes
 	  p <- p + theme_bw() +
-	    guides(colour = guide_legend(override.aes = list(alpha = 1)))+
+	    guides(colour = guide_legend(override.aes = list(alpha = 1,
+	                                                     size = 3)))+
 	    theme(
 	    ) +
 	    labs(
-	      x     = 'pseudotime'
-	      ,y    = 'scaled gene expression'
+	      x     = 'Pseudotime'
+	      ,y    = 'Scaled Gene Expression'
 	    ) + 
 	    theme(legend.position="bottom", 
 	          legend.box = "vertical",
 	          legend.title=element_blank()) +
 	    facet_wrap(~ trajectory) + #split plot by trajectory path
-	    theme(strip.text.x = element_text(size = 18, face = "bold")) + #+#specify facet title size 
+	    theme(strip.text.x = element_text(size = 24, face = "bold"),#+#specify facet title size
+	          axis.text=element_text(size=16),
+	          legend.text = element_text(size = 14),
+	          axis.title=element_text(size=16),
+	          legend.key.size = unit(.4, "in")) + #increase dash length
 	    scale_x_continuous(breaks= scales::pretty_breaks()) + #create automatic x axis labels
 	    scale_x_continuous( expand = c(0, 0)) #remove gap below 0
 	  
@@ -791,23 +890,6 @@ output$plot.uiDatFeatPlotV5 <- renderUI({
 	                        message = "Rendering plot..", min = 0, max = 10, value = 10)})
 	})
 	
-	#do not need getHeightMultiPtimeLinePlot() for this tab
-	# getHeightMultiPtimeLinePlot <- function() {
-	#   l <- getLenInput(input$multptimeLinePlotGenes)
-	#     if (l == 1) {h <- "300px"
-	#     } else {
-	#       h <- as.character(ceiling(l) * 300)
-	#       h <- paste0(h, "px")
-	#     }
-	#     if (l == 1) {h <- "600px"
-	#     } else {
-	#       h <- as.character(ceiling(l) * 600)
-	#       h <- paste0(h, "px")
-	#     }
-	#   }
-	#   return(h)
-	# }
-	
 	output$plot.uiMultiGPtimeLinePlotF <- renderUI({input$runMultiPtimeLinePlot
 	  #isolate({h <- getHeightMultiPtimeLinePlot()
 	  plotOutput("myMultiGPtimeLinePlotF", width = "1000px", height = "700px")
@@ -824,7 +906,8 @@ output$plot.uiDatFeatPlotV5 <- renderUI({
 	    #   dev.off()
 	    # }else{
 	      svg(file, 
-	          width = 14, height = 7.5)
+	          #width = 14, height = 7.5) #original dims
+	          width = 13.33, height = 9.33) #adjusted to scale to screen
 	      print(plot(MultiGPtimeLinePlotF()))
 	      dev.off()
 	   # }
@@ -836,7 +919,8 @@ output$plot.uiDatFeatPlotV5 <- renderUI({
 	output$downloadPDFMultiGPtimeLinePlotF <- downloadHandler(
 	  filename = "Multi_Ptime_line_dynamic_plot.pdf", content = function(file) {
 	      pdf(file, 
-	          width = 14, height = 7.5)
+	          #width = 14, height = 7.5) #original dims
+	          width = 13.33, height = 9.33) #adjusted to scale to screen
 	    print(plot(MultiGPtimeLinePlotF()))
 	    dev.off()
 	  }
@@ -846,7 +930,8 @@ output$plot.uiDatFeatPlotV5 <- renderUI({
 	output$downloadPNGMultiGPtimeLinePlotF <- downloadHandler(
 	  filename = "Multi_Ptime_line_dynamic_plot.png", content = function(file) {
 	      png(file, 
-	          width = 14, height = 7.5,
+	          #width = 14, height = 7.5) #original dims
+	          width = 13.33, height = 9.33, #adjusted to scale to screen
 	          units = "in", res = 300)
 	      print(plot(MultiGPtimeLinePlotF()))
 	      dev.off()
@@ -884,47 +969,49 @@ output$plot.uiDatFeatPlotV5 <- renderUI({
 	  #specify treatment and sequencing technique (data.set)
 	  dotplot$data <- dotplot$data %>% mutate(groupIdent=case_when(
 	    str_detect(dotplot$data$id, "cluster_3|cluster_2|cluster_7|cluster_6") ~ "Injury Response + Progenitor Activation", 
-	    str_detect(dotplot$data$id, "cluster_8|cluster_5|^cluster_1$") ~ "HC Lineage",
 	    str_detect(dotplot$data$id, "cluster_9|cluster_4|^cluster_10$") ~ "Central Cell Lineage",
+	    str_detect(dotplot$data$id, "cluster_8|cluster_5|^cluster_1$") ~ "HC Lineage",
 	    TRUE ~ as.character(dotplot$data$id)))
 	  
 	  #reorder levels/ build plotting df
 	  dotplot$data$groupIdent <- factor(dotplot$data$groupIdent,
 	                                    levels = c("Injury Response + Progenitor Activation",
-	                                               "HC Lineage",
-	                                               "Central Cell Lineage"))
+	                                               "Central Cell Lineage",
+	                                               "HC Lineage"
+	                                               ))
 	  
 	  dotplot$data$id <- factor(dotplot$data$id, 
-	                            levels = paste0("cluster_",c(3,2,7,6,8,5,1,9,10,4)))
-	  }else{ #if (input$selectClustering == "cl19"){
-	    # change current idents to heirarachical clusters num
-	    #seurat_obj$tree.ident.cl10 <- factor(seurat_obj$tree.ident.cl10)
-	    levels(seurat_obj$tree.ident.cl19) <- 
-	      paste0("cluster_",levels(seurat_obj$tree.ident.cl19))
-	    
-	    Idents(seurat_obj) <- "tree.ident.cl19"
-	    
-	    dotplot <- DotPlot(seurat_obj, features = selected,
-	                       group.by = "tree.ident.cl19")
-	    
-	    # specify trajectory group based on cluster number
-	    clusters <- as.character(dotplot$data$id)
-	    #specify treatment and sequencing technique (data.set)
-	    dotplot$data <- dotplot$data %>% mutate(groupIdent=case_when(
-	      str_detect(dotplot$data$id, "cluster_3|cluster_2|cluster_5|cluster_4|cluster_9|^cluster_11$|cluster_8|^cluster_12$|^cluster_10$") ~ "Injury Response + Progenitor Activation", 
-	      str_detect(dotplot$data$id, "^cluster_19$|^cluster_17$|^cluster_14$|^cluster_13$|^cluster_1$") ~ "HC Lineage",
-	      str_detect(dotplot$data$id, "^cluster_18$|^cluster_15$|^cluster_16$|cluster_7|cluster_6") ~ "Central Cell Lineage",
-	      TRUE ~ as.character(dotplot$data$id)))
-	    
-	    #reorder levels/ build plotting df
-	    dotplot$data$groupIdent <- factor(dotplot$data$groupIdent,
-	                                      levels = c("Injury Response + Progenitor Activation",
-	                                                 "HC Lineage",
-	                                                 "Central Cell Lineage"))
-	    
-	    dotplot$data$id <- factor(dotplot$data$id, 
-	                              levels = paste0("cluster_",c(3,2,5,4,9,11,8,12,10,19,17,14,13,1,18,15,16,7,6)))
+	                            levels = paste0("cluster_",c(3,2,7,6,9,10,4,8,5,1)))
 	  }
+	  # }else{ #if (input$selectClustering == "cl19"){
+	  #   # change current idents to heirarachical clusters num
+	  #   #seurat_obj$tree.ident.cl10 <- factor(seurat_obj$tree.ident.cl10)
+	  #   levels(seurat_obj$tree.ident.cl19) <- 
+	  #     paste0("cluster_",levels(seurat_obj$tree.ident.cl19))
+	  #   
+	  #   Idents(seurat_obj) <- "tree.ident.cl19"
+	  #   
+	  #   dotplot <- DotPlot(seurat_obj, features = selected,
+	  #                      group.by = "tree.ident.cl19")
+	  #   
+	  #   # specify trajectory group based on cluster number
+	  #   clusters <- as.character(dotplot$data$id)
+	  #   #specify treatment and sequencing technique (data.set)
+	  #   dotplot$data <- dotplot$data %>% mutate(groupIdent=case_when(
+	  #     str_detect(dotplot$data$id, "cluster_3|cluster_2|cluster_5|cluster_4|cluster_9|^cluster_11$|cluster_8|^cluster_12$|^cluster_10$") ~ "Injury Response + Progenitor Activation", 
+	  #     str_detect(dotplot$data$id, "^cluster_19$|^cluster_17$|^cluster_14$|^cluster_13$|^cluster_1$") ~ "HC Lineage",
+	  #     str_detect(dotplot$data$id, "^cluster_18$|^cluster_15$|^cluster_16$|cluster_7|cluster_6") ~ "Central Cell Lineage",
+	  #     TRUE ~ as.character(dotplot$data$id)))
+	  #   
+	  #   #reorder levels/ build plotting df
+	  #   dotplot$data$groupIdent <- factor(dotplot$data$groupIdent,
+	  #                                     levels = c("Injury Response + Progenitor Activation",
+	  #                                                "HC Lineage",
+	  #                                                "Central Cell Lineage"))
+	  #   
+	  #   dotplot$data$id <- factor(dotplot$data$id, 
+	  #                             levels = paste0("cluster_",c(3,2,5,4,9,11,8,12,10,19,17,14,13,1,18,15,16,7,6)))
+	  # }
 	  
 	  plot_df <- dotplot$data
 	  
@@ -935,12 +1022,17 @@ output$plot.uiDatFeatPlotV5 <- renderUI({
 	    scale_y_discrete(expand=c(0,0))+ #expand tile
 	    scale_fill_distiller(
 	      palette = "RdYlBu") +
-	    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=.5,size = 13),
+	    theme(axis.text.x = element_text(angle = 90,
+	                                     vjust = 0.5, 
+	                                     hjust=.5,
+	                                     size = 13),
+	          axis.text.y = element_text(size = 13),
 	          axis.title.y.right = element_blank(),
 	          panel.spacing = unit(.25, "lines"), #change facet spacing
 	          strip.text.x  = element_text(size = 14,face = "bold"), #change facet label 
 	          panel.background = element_blank(),
-	          axis.title.y  = element_blank()) +
+	          axis.title.y  = element_blank(),
+	          ) +
 	    facet_grid( ~ groupIdent, scales='free_x') + #split heatmap by meta trajectory
 	    ylim(rev(levels(dotplot$data$features.plot))) #put first element in gene list on top of heatmap
 	  #scale_y_discrete(position = "right") # <---- uncomment if you want to put gene labels on the right side
@@ -949,7 +1041,16 @@ output$plot.uiDatFeatPlotV5 <- renderUI({
 	  g <- ggplot_gtable(ggplot_build(p))
 	  strips <- which(grepl('strip-', g$layout$name))
 	  
-	  pal <- c("#A3A500", "#00BE67", "#F8766D")
+	  #recolored scheme
+	  central_traj_geom_smooth_col <- 
+	    ptime_type_trt_cols[ptime_type_trt_cols$cell_type_trt == 
+	                          "10hr.central-cells",]$recolor.2
+	  
+	  main_traj_geom_smooth_col <- 
+	    ptime_type_trt_cols[ptime_type_trt_cols$cell_type_trt == 
+	                          "10hr.mature-HCs",]$recolor.2
+	  
+	  pal <- c("#A3A500", central_traj_geom_smooth_col, main_traj_geom_smooth_col)
 	  
 	  for (i in seq_along(strips)) {
 	    k <- which(grepl('rect', g$grobs[[strips[i]]]$grobs[[1]]$childrenOrder))
@@ -1032,6 +1133,16 @@ output$plot.uiDatFeatPlotV5 <- renderUI({
 	        units = "in", res = 300)
 	    print(plot(HeatmapF()))
 	    dev.off()
+	  }
+	)
+	
+	output$downloadDatasetGenes <- downloadHandler(
+	  filename = "genes_in_dataset.xlsx",
+	  content = function(file){
+	    file.copy("./data/genes_in_data_set.xlsx", file)
+	    # write.table(gene_df, file,
+	    #             row.names = FALSE, col.names = TRUE,
+	    #             qmethod = "double", sep = "\t")
 	  }
 	)
 

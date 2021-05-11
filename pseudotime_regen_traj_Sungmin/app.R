@@ -2,7 +2,6 @@
 options(repos = BiocManager::repositories())
 	library(shiny)
 	library(cowplot)
-	#library(Seurat)
 	library(monocle3)
 	library(ggplot2)
 	library(shinythemes)
@@ -198,8 +197,8 @@ names(file_list) <- as.character(c("ptime_main_traj", "ptime_central_traj",
 list2env(file_list,envir=.GlobalEnv)
 
 #preserve dataset colors 
-cell_type_trt <- levels(cds$cell.type.and.trt)
-type_trt_cols <- gg_color_hue(length(cell_type_trt))
+# cell_type_trt <- levels(cds$cell.type.and.trt)
+# type_trt_cols <- gg_color_hue(length(cell_type_trt))
 
 
 	smpl_genes_single <- paste0("atoh1a")
@@ -210,9 +209,14 @@ type_trt_cols <- gg_color_hue(length(cell_type_trt))
 
 	gene_df <- read.table("./data/Danio_Features_unique_Ens91_v2.tsv",
 			sep = "\t", header = TRUE, stringsAsFactors = FALSE)
+	
+	ptime_type_trt_cols <- read.table(
+	  "./data/RECOLORED_umap_dataset_hex_color_df.txt",
+	  header = T,
+	  stringsAsFactors = F)
 
 	branch <- "master" # CHECK BEFORE DEPLOYMENT!
-	app_name <- "regen_pseudotime_traj_Sungmin"
+	app_name <- "pseudotime_regen_traj_Sungmin"
 # ! =========== {END}
 
 

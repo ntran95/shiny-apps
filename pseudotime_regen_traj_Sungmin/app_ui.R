@@ -26,13 +26,26 @@ ui <- fixedPage(theme = shinythemes::shinytheme("lumen"), # paper lumen cosmo
 #             choices = list(Combined = names(file_list)),
 #             selected = "all she-pos. cells", width = "50%")
 						      ),
-						fluidRow(tags$br()),
-						fluidRow(tags$br()),
+fluidRow(tags$br()),
+fluidRow(tags$br()),
 
+        
+       fluidRow(tags$br()),
+       fluidRow(tags$br()),
 						column(12, tags$hr()),
 						fluidRow(tags$br()),
 						fluidRow(tags$br()),
 						column(10, align = "center", offset = 1,
+						       column(12, align = "left", tags$b("Introduction")),
+						       column(12, align = "left",
+						              'Our pseudotime analysis is a subset of hair cell populations',
+						              'cells from our neuromast regeneration scRNA-seq data (see our shiny app ' ,
+						              tags$a("Neuromast Regeneration shiny app", href = 'https://piotrowskilab.shinyapps.io/neuromast_regeneration_scRNAseq_pub_2021/'),
+						              '. Our pseudotime analysis was processed using R package monocle3 (v0.2.1, Trapnell, C et al.,(2014)).',
+						              ),
+						       
+						    fluidRow(tags$br()),
+						    fluidRow(tags$br()),   
 								column(12, align = "left", tags$b("Instructions")),
 								column(12, align = "left",
 									'All genes available for plotting can be downloaded in the
@@ -46,10 +59,20 @@ ui <- fixedPage(theme = shinythemes::shinytheme("lumen"), # paper lumen cosmo
 									Ensembl 91 gene annotation in zebrafish (genome version 10).
 									We therefore recommend using Ensembl gene IDs as input, 
 									as common gene names can change with annotation updates.',
-									'Cluster markers and related figures can be downloaded in',
-									tags$a(href = "https://webfs/n/projects/ddiaz/Analysis/Scripts/sb2191-regen/regen-summary/site/",
-										tags$b("this notebook")),
-									'. All genes used for this dataset can be downloaded below:'),
+									'All genes used for this dataset can be downloaded below:'),
+								
+								fluidRow(tags$br()),
+								fluidRow(tags$br()),
+# 								column(12, tags$hr()),
+# 								fluidRow(tags$br()),
+# 								fluidRow(tags$br()),
+# 								       column(12, align = "left", tags$b("Introduction")),
+# 								       column(12, align = "left",
+# 								              'Our pseudotime analysis is a subset of hair cell populations',
+#                       'cells from our neuromast regeneration scRNA-seq data (see' ,
+# 								              tags$a(href = 'https://piotrowskilab.shinyapps.io/neuromast_regeneration_scRNAseq_pub_2021/'),
+# 								              '. Our pseudotime analysis was processed using R package monocle3 (v0.2.1, Trapnell, C et al.,(2014)).'),
+# 
 
 								fluidRow(tags$br()),
 								fluidRow(tags$br()),
@@ -158,6 +181,14 @@ ui <- fixedPage(theme = shinythemes::shinytheme("lumen"), # paper lumen cosmo
 							downloadButton("downloadPNGFeaturePlotF", "Download PNG",
 								style = 'padding:5px; font-size:80%')),
 
+        column(12, tags$br()),
+        column(12,  align = "center", 
+               radioGroupButtons("selectTrajectoryLine",
+                                 "Graph Choices:", 
+                                 choices = list(ShowTrajectory = "Trajectory",
+                                                NoTrajectory = "NoTrajectory"), 
+                                                        width = "100%")),
+
 					column(12, tags$br()),
 
 					column(12, align = "center", uiOutput("cellSelectFeat")),
@@ -245,8 +276,8 @@ ui <- fixedPage(theme = shinythemes::shinytheme("lumen"), # paper lumen cosmo
           column(12,  align = "center", 
           radioGroupButtons("selectCutOffPtimeLinePlot",
                          "Select Graph Cutoff:", 
-                         choices = list(noCutoff = "NoCutOff", 
-                         cutOffAfterBranching = "AfterBranchingPoint"), 
+                         choices = list(noCutoff = "NoCutOff"), 
+                         #cutOffAfterBranching = "AfterBranchingPoint"), 
                          width = "100%")),
 
 					fluidRow(tags$br()),
@@ -305,8 +336,8 @@ ui <- fixedPage(theme = shinythemes::shinytheme("lumen"), # paper lumen cosmo
 					column(12,  align = "center", 
 					       radioGroupButtons("selectCutOffMultiGPtimeLinePlot",
 					                         "Select Graph Cutoff:", 
-					                         choices = list(noCutoff = "NoCutOff", 
-					                        cutOffAfterBranching = "AfterBranchingPoint"), 
+					                         choices = list(noCutoff = "NoCutOff"), 
+					                        #cutOffAfterBranching = "AfterBranchingPoint"), 
 					                         width = "100%")),
 
 # column(12, tags$br()),
@@ -372,8 +403,7 @@ ui <- fixedPage(theme = shinythemes::shinytheme("lumen"), # paper lumen cosmo
 					column(12,  align = "center", 
 					       radioGroupButtons("selectClustering",
 					                         "Select Clustering Option:", 
-					                         choices = list(Clustering19 = "cl19",
-					                                         Clustering10 = "cl10"), 
+					                         choices = list(Clustering10 = "cl10"), 
 					                         width = "100%")),
 
 
